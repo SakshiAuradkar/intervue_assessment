@@ -9,6 +9,9 @@ interface Poll {
   timeLimit: number;
   startTime: number;
   ended: boolean;
+  correctAnswer?: string;
+  finalVotes?: Record<string, string>;
+
 }
 
 interface PollWithResults extends Poll {
@@ -44,7 +47,7 @@ interface PollState {
   isKicked: boolean;
   initializeSocket: () => void;
   joinSession: (name: string) => void;
-  createPoll: (question: string, options: string[], timeLimit: number) => void;
+  createPoll: (pollData: { question: string; options: string[]; timeLimit: number; correctAnswer: string }) => void;
   endPoll: () => void;
   submitVote: (option: string) => void;
   sendMessage: (message: string, isTeacher: boolean) => void;
@@ -154,8 +157,11 @@ export const usePollStore = create<PollState>((set, get) => ({
     set({ studentName: name });
   },
 
-  createPoll: (question, options, timeLimit) => {
-    get().socket?.emit('create-poll', { question, options, timeLimit });
+  createPoll: (pollData) => {
+    const { socket } = get();
+    if (socket) {
+      socket.emit('create-poll', pollData);
+    }
   },
 
   endPoll: () => {

@@ -30,6 +30,7 @@ const TeacherDashboard = ({ onBack }: TeacherDashboardProps) => {
   const [options, setOptions] = useState(['', '']);
   const [timeLimit, setTimeLimit] = useState(60);
   const [showChat, setShowChat] = useState(false);
+  const [correctAnswer, setCorrectAnswer] = useState('');
 
   const addOption = () => {
     if (options.length < 6) {
@@ -51,11 +52,12 @@ const TeacherDashboard = ({ onBack }: TeacherDashboardProps) => {
 
   const handleCreatePoll = () => {
     const validOptions = options.filter(opt => opt.trim() !== '');
-    if (question.trim() && validOptions.length >= 2) {
-      createPoll(question, validOptions, timeLimit);
+    if (question.trim() && validOptions.length >= 2 && correctAnswer) {
+      createPoll({ question, options: validOptions, timeLimit, correctAnswer });
       setQuestion('');
       setOptions(['', '']);
       setTimeLimit(60);
+      setCorrectAnswer('');
     }
   };
 
@@ -135,8 +137,18 @@ const TeacherDashboard = ({ onBack }: TeacherDashboardProps) => {
 
                 <div>
                   <Label>Options</Label>
+                  <p className="text-xs text-gray-500 mb-2">Select the correct answer by clicking the circle.</p>
                   {options.map((option, index) => (
-                    <div key={index} className="flex gap-2 mt-2">
+                    <div key={index} className="flex gap-2 mt-2 items-center">
+                      <input
+                        type="radio"
+                        name="correct-answer"
+                        value={option}
+                        checked={correctAnswer === option}
+                        onChange={(e) => setCorrectAnswer(e.target.value)}
+                        disabled={!canCreatePoll || !option.trim()}
+                        className="form-radio h-4 w-4 text-blue-600"
+                      />
                       <Input
                         value={option}
                         onChange={(e) => updateOption(index, e.target.value)}
@@ -187,7 +199,7 @@ const TeacherDashboard = ({ onBack }: TeacherDashboardProps) => {
                   <Button
                     onClick={handleCreatePoll}
                     className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
-                    disabled={!question.trim() || options.filter(o => o.trim()).length < 2}
+                    disabled={!question.trim() || options.filter(o => o.trim()).length < 2 || !correctAnswer}
                   >
                     Create Poll
                   </Button>

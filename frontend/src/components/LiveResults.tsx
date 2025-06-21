@@ -1,9 +1,9 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { usePollStore } from '../store/pollStore';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell } from 'recharts';
+import { CheckCircle } from 'lucide-react';
 
 const LiveResults = () => {
   const { currentPoll, votes, students, timeRemaining } = usePollStore();
@@ -51,26 +51,41 @@ const LiveResults = () => {
         </div>
 
         <div className="space-y-4">
-          {results.map((result, index) => (
-            <div key={result.option} className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="font-medium text-gray-700">{result.option}</span>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-500">{result.votes} votes</span>
-                  <Badge 
-                    variant="secondary" 
-                    style={{ backgroundColor: `${colors[index % colors.length]}20`, color: colors[index % colors.length] }}
-                  >
-                    {result.percentage}%
-                  </Badge>
+          {results.map((result, index) => {
+            const isCorrect = currentPoll.ended && result.option === currentPoll.correctAnswer;
+            return (
+              <div
+                key={result.option}
+                className={`space-y-2 p-3 rounded-lg transition-all ${isCorrect ? 'bg-green-100 ring-2 ring-green-500' : ''}`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-medium text-gray-700 flex items-center gap-2">
+                    {result.option}
+                    {isCorrect && (
+                      <Badge variant="default" className="bg-green-500 hover:bg-green-600">
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        Correct
+                      </Badge>
+                    )}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-500">{result.votes} votes</span>
+                    <Badge 
+                      variant="secondary" 
+                      style={{ backgroundColor: `${colors[index % colors.length]}20`, color: colors[index % colors.length] }}
+                    >
+                      {result.percentage}%
+                    </Badge>
+                  </div>
                 </div>
+                <Progress 
+                  value={result.percentage} 
+                  className="h-3"
+                  indicatorClassName={isCorrect ? 'bg-green-500' : ''}
+                />
               </div>
-              <Progress 
-                value={result.percentage} 
-                className="h-3"
-              />
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {voteCount > 0 && (

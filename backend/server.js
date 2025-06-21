@@ -82,13 +82,14 @@ io.on('connection', (socket) => {
   // Handle poll creation
   socket.on('create-poll', (data) => {
     try {
-      const { question, options, timeLimit } = data;
+      const { question, options, timeLimit, correctAnswer } = data;
 
       currentPoll = {
         id: Date.now().toString(),
         question,
         options,
         timeLimit,
+        correctAnswer,
         startTime: Date.now(),
         ended: false
       };
@@ -104,8 +105,10 @@ io.on('connection', (socket) => {
       pollTimer = setTimeout(() => {
         if (currentPoll && !currentPoll.ended) {
           currentPoll.ended = true;
-          pollHistory.push({ ...currentPoll, finalVotes: { ...votes } });
-          io.emit('poll-ended', currentPoll);
+          const finalPollState = { ...currentPoll, finalVotes: { ...votes } };
+          
+          pollHistory.push(finalPollState);
+          io.emit('poll-ended', finalPollState);
           io.emit('history-updated', pollHistory);
           console.log('Poll ended automatically after timeout.');
         }
@@ -127,8 +130,9 @@ io.on('connection', (socket) => {
           clearTimeout(pollTimer);
           pollTimer = null;
         }
-        pollHistory.push({ ...currentPoll, finalVotes: { ...votes } });
-        io.emit('poll-ended', currentPoll);
+        const finalPollState = { ...currentPoll, finalVotes: { ...votes } };
+        pollHistory.push(finalPollState);
+        io.emit('poll-ended', finalPollState);
         io.emit('history-updated', pollHistory);
         console.log('Poll ended by explicit request.');
       }
