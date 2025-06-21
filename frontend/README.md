@@ -1,6 +1,9 @@
 
 # Real-Time Polling Application
 
+Frontend hosted on vercel and backend on railway.
+
+Live link : https://intervue-assessment.vercel.app/
 A modern real-time polling application built with React and Socket.IO for interactive classroom or presentation engagement.
 
 ## 🚀 Features
@@ -54,7 +57,7 @@ The backend server will start on `http://localhost:3001`
 npm install
 npm run dev
 ```
-The frontend will start on `http://localhost:8080`
+The frontend will start on `http://localhost:8080`(incase using it locally)
 
 ### Usage
 1. Open `http://localhost:8080` in your browser
@@ -93,7 +96,7 @@ The frontend will start on `http://localhost:8080`
 ### Environment Variables
 Create a `.env` file in the project root:
 ```env
-VITE_BACKEND_URL=http://localhost:3001
+VITE_BACKEND_URL=http://localhost:3001(local)
 ```
 
 
