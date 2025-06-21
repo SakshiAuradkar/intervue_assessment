@@ -2,61 +2,70 @@
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
-const cors = require('cors'); // Ensure cors package is installed (npm install cors)
+const cors = require('cors');
 
 const app = express();
 const server = http.createServer(app);
 
-// Define your allowed origins as an array.
-// This will handle cases where Railway might add a trailing slash to the ENV var,
-// or if the browser sends the origin without it.
+// Define your allowed origins dynamically based on the environment variable.
+// This is now the ONLY place where allowed origins are defined.
 const allowedFrontendOrigins = [
-  "http://localhost:8080", // Your local frontend development URL
+  "http://localhost:8080", // Your local frontend dev URL
   "https://intervue-assessment.vercel.app", // Your deployed Vercel frontend URL (without trailing slash)
-  "https://intervue-assessment.vercel.app/"  // Your deployed Vercel frontend URL (with trailing slash, just in case)
+  "https://intervue-assessment.vercel.app/"  // Your deployed Vercel frontend URL (with trailing slash, as a fallback)
 ];
 
-// --- TEMPORARY DEBUGGING LOG (Remove after verification) ---
-// This will print the actual value of FRONTEND_URL that Railway is providing
-// Check your Railway deployment logs for this output.
-console.log("Backend process.env.FRONTEND_URL from Railway:", process.env.FRONTEND_URL);
-// --- END TEMPORARY DEBUGGING LOG ---
+// If process.env.FRONTEND_URL is set, add it to the allowed list (just in case it's different)
+if (process.env.FRONTEND_URL) {
+  const envUrl = process.env.FRONTEND_URL;
+  if (!allowedFrontendOrigins.includes(envUrl)) {
+    allowedFrontendOrigins.push(envUrl);
+  }
+  // Also add without trailing slash if the env var came with one
+  if (envUrl.endsWith('/') && !allowedFrontendOrigins.includes(envUrl.slice(0, -1))) {
+      allowedFrontendOrigins.push(envUrl.slice(0, -1));
+  }
+}
 
+// --- TEMPORARY DEBUGGING LOG (Keep this for now!) ---
+console.log("Backend process.env.FRONTEND_URL from Railway:", process.env.FRONTEND_URL);
+console.log("Backend is allowing CORS from these origins:", allowedFrontendOrigins);
+// --- END TEMPORARY DEBUGGING LOG ---
 
 // --- CORS configuration for Express routes (HTTP requests) ---
 app.use(cors({
-  // Use a function for 'origin' to check against the array of allowed origins
   origin: function (origin, callback) {
     if (!origin || allowedFrontendOrigins.includes(origin)) {
-      callback(null, true); // Allow the request
+      callback(null, true);
     } else {
-      console.warn(`CORS Error: Origin ${origin} not allowed.`);
-      callback(new Error('Not allowed by CORS'), false); // Block the request
+      console.warn(`CORS Error (HTTP): Origin ${origin} not allowed. Allowed: ${allowedFrontendOrigins.join(', ')}`);
+      callback(new Error('Not allowed by CORS'), false);
     }
   },
-  credentials: true // Important if you send cookies or authorization headers
+  credentials: true
 }));
 
-app.use(express.json()); // Middleware to parse JSON bodies
+app.use(express.json());
 
 // --- CORS configuration for Socket.IO ---
 const io = socketIo(server, {
   cors: {
-    // Use a function for 'origin' here as well, matching Express CORS
     origin: function (origin, callback) {
       if (!origin || allowedFrontendOrigins.includes(origin)) {
-        callback(null, true); // Allow the Socket.IO connection
+        callback(null, true);
       } else {
-        console.warn(`Socket.IO CORS Error: Origin ${origin} not allowed.`);
-        callback(new Error('Not allowed by Socket.IO CORS'), false); // Block the connection
+        console.warn(`Socket.IO CORS Error: Origin ${origin} not allowed. Allowed: ${allowedFrontendOrigins.join(', ')}`);
+        callback(new Error('Not allowed by Socket.IO CORS'), false);
       }
     },
-    methods: ["GET", "POST", "PUT", "DELETE"], // Add common methods if not explicitly handled by your use case
-    credentials: true // Match with express cors if you use cookies/auth with sockets
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    credentials: true
   }
 });
 
-// --- Health check endpoint ---
+// ... (rest of your server.js code - no changes below this point) ...
+
+// Health check endpoint
 app.get('/', (req, res) => {
   res.send('Backend server is running.');
 });
@@ -65,7 +74,7 @@ app.get('/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
-// --- Application State (moved to top for clarity) ---
+// Store application state
 let currentPoll = null;
 let students = [];
 let votes = {};
@@ -73,7 +82,7 @@ let chatMessages = [];
 let pollHistory = [];
 let pollTimer = null;
 
-// --- Socket.IO connection handling ---
+// Socket.IO connection handling
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
 
@@ -96,7 +105,6 @@ io.on('connection', (socket) => {
         joinedAt: Date.now()
       };
 
-      // Ensure no duplicate names; filter out existing student with same name
       students = students.filter(s => s.name !== name);
       students.push(student);
 
@@ -111,7 +119,7 @@ io.on('connection', (socket) => {
   socket.on('create-poll', (data) => {
     try {
       const { question, options, timeLimit, correctAnswer } = data;
-
+      
       currentPoll = {
         id: Date.now().toString(),
         question,
@@ -122,14 +130,12 @@ io.on('connection', (socket) => {
         ended: false
       };
 
-      votes = {}; // Reset votes for new poll
-
-      // Clear any existing timer
+      votes = {};
+      
       if (pollTimer) {
         clearTimeout(pollTimer);
       }
 
-      // Set timer to end poll
       pollTimer = setTimeout(() => {
         if (currentPoll && !currentPoll.ended) {
           currentPoll.ended = true;
@@ -140,7 +146,7 @@ io.on('connection', (socket) => {
           io.emit('history-updated', pollHistory);
           console.log('Poll ended automatically after timeout.');
         }
-      }, timeLimit * 1000); // timeLimit is in seconds, convert to milliseconds
+      }, timeLimit * 1000);
 
       io.emit('poll-created', currentPoll);
       console.log('Poll created:', currentPoll);
@@ -173,9 +179,9 @@ io.on('connection', (socket) => {
   socket.on('submit-vote', (data) => {
     try {
       const { option, studentName } = data;
-
+      
       if (currentPoll && !currentPoll.ended && studentName) {
-        votes[studentName] = option; // Store vote by studentName
+        votes[studentName] = option;
         io.emit('votes-updated', votes);
         console.log('Vote submitted:', { studentName, option });
       }
@@ -188,7 +194,7 @@ io.on('connection', (socket) => {
   socket.on('send-message', (data) => {
     try {
       const { message, sender, isTeacher } = data;
-
+      
       const chatMessage = {
         id: Date.now().toString(),
         sender,
@@ -213,14 +219,12 @@ io.on('connection', (socket) => {
 
       if (kickedStudent) {
         students = students.filter(s => s.id !== studentId);
-
-        // Remove votes from kicked student by their name
+        
         delete votes[kickedStudent.name];
 
         io.emit('students-updated', students);
-        io.emit('votes-updated', votes); // Update votes state for all clients
-
-        // Disconnect the kicked student's socket
+        io.emit('votes-updated', votes);
+        
         io.to(studentId).emit('kicked');
         console.log('Student kicked:', studentId);
       }
@@ -232,15 +236,13 @@ io.on('connection', (socket) => {
   // Handle disconnection
   socket.on('disconnect', () => {
     try {
-      // Find the disconnected student by socket.id
       const disconnectedStudent = students.find(s => s.id === socket.id);
       
       students = students.filter(s => s.id !== socket.id);
       
-      // Also remove their vote if they were in a poll
       if (disconnectedStudent && votes[disconnectedStudent.name]) {
         delete votes[disconnectedStudent.name];
-        io.emit('votes-updated', votes); // Update votes state for all clients
+        io.emit('votes-updated', votes);
       }
 
       io.emit('students-updated', students);
@@ -251,7 +253,7 @@ io.on('connection', (socket) => {
   });
 });
 
-const PORT = process.env.PORT || 3001; // Railway will provide PORT, fallback to 3001 for local
+const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
