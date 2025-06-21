@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { X, Send, MessageCircle } from 'lucide-react';
+import { X, Send, MessageCircle, Trash2 } from 'lucide-react';
 import { usePollStore } from '../store/pollStore';
 
 interface ChatPanelProps {
@@ -12,7 +12,7 @@ interface ChatPanelProps {
 }
 
 const ChatPanel = ({ onClose, isTeacher }: ChatPanelProps) => {
-  const { chatMessages, sendMessage, studentName } = usePollStore();
+  const { chatMessages, sendMessage, studentName, clearChat } = usePollStore();
   const [message, setMessage] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -55,14 +55,27 @@ const ChatPanel = ({ onClose, isTeacher }: ChatPanelProps) => {
             <MessageCircle className="w-5 h-5 text-blue-500" />
             <CardTitle className="text-lg">Chat</CardTitle>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onClose}
-            className="hover:bg-gray-100"
-          >
-            <X className="w-4 h-4" />
-          </Button>
+          <div className="flex items-center">
+            {isTeacher && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearChat}
+                className="hover:bg-red-50 text-red-500 hover:text-red-600 mr-2"
+                title="Clear Chat History"
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onClose}
+              className="hover:bg-gray-100"
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
         </div>
       </CardHeader>
       

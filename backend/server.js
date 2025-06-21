@@ -220,6 +220,17 @@ io.on('connection', (socket) => {
     }
   });
 
+  // Handle clearing chat
+  socket.on('clear-chat', () => {
+    try {
+      chatMessages = []; // Clear the chat messages array
+      io.emit('chat-cleared'); // Notify all clients that chat was cleared
+      console.log('Chat has been cleared.');
+    } catch (error) {
+      console.error('Error in clear-chat:', error);
+    }
+  });
+
   socket.on('kick-student', (data) => {
     try {
       const { studentId } = data;

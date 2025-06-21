@@ -54,6 +54,7 @@ interface PollState {
   kickStudent: (studentId: string) => void;
   startPollTimer: (poll: Poll) => void;
   resetKickedState: () => void;
+  clearChat: () => void;
 }
 
 // Backend URL from environment variable or default to localhost
@@ -129,6 +130,10 @@ export const usePollStore = create<PollState>((set, get) => ({
         set((state) => ({ chatMessages: [...state.chatMessages, message] }));
     });
 
+    socket.on('chat-cleared', () => {
+      set({ chatMessages: [] });
+    });
+
     socket.on('kicked', () => {
       sessionStorage.removeItem('studentName');
       set({ studentName: null, isKicked: true });
@@ -186,6 +191,10 @@ export const usePollStore = create<PollState>((set, get) => ({
 
   resetKickedState: () => {
     set({ isKicked: false });
+  },
+
+  clearChat: () => {
+    get().socket?.emit('clear-chat');
   },
 
 })); 
