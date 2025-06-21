@@ -1,3 +1,4 @@
+// server.js
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
@@ -6,14 +7,33 @@ const cors = require('cors'); // Ensure cors package is installed (npm install c
 const app = express();
 const server = http.createServer(app);
 
-// Define your allowed origins dynamically based on the environment variable
-// In production, process.env.FRONTEND_URL will be used.
-// In development, it will fallback to http://localhost:8080 (or your actual frontend dev port)
-const allowedFrontendOrigin = process.env.FRONTEND_URL || "http://localhost:8080";
+// Define your allowed origins as an array.
+// This will handle cases where Railway might add a trailing slash to the ENV var,
+// or if the browser sends the origin without it.
+const allowedFrontendOrigins = [
+  "http://localhost:8080", // Your local frontend development URL
+  "https://intervue-assessment.vercel.app", // Your deployed Vercel frontend URL (without trailing slash)
+  "https://intervue-assessment.vercel.app/"  // Your deployed Vercel frontend URL (with trailing slash, just in case)
+];
+
+// --- TEMPORARY DEBUGGING LOG (Remove after verification) ---
+// This will print the actual value of FRONTEND_URL that Railway is providing
+// Check your Railway deployment logs for this output.
+console.log("Backend process.env.FRONTEND_URL from Railway:", process.env.FRONTEND_URL);
+// --- END TEMPORARY DEBUGGING LOG ---
+
 
 // --- CORS configuration for Express routes (HTTP requests) ---
 app.use(cors({
-  origin: allowedFrontendOrigin, // Use the dynamically set origin
+  // Use a function for 'origin' to check against the array of allowed origins
+  origin: function (origin, callback) {
+    if (!origin || allowedFrontendOrigins.includes(origin)) {
+      callback(null, true); // Allow the request
+    } else {
+      console.warn(`CORS Error: Origin ${origin} not allowed.`);
+      callback(new Error('Not allowed by CORS'), false); // Block the request
+    }
+  },
   credentials: true // Important if you send cookies or authorization headers
 }));
 
@@ -22,7 +42,15 @@ app.use(express.json()); // Middleware to parse JSON bodies
 // --- CORS configuration for Socket.IO ---
 const io = socketIo(server, {
   cors: {
-    origin: allowedFrontendOrigin, // Use the dynamically set origin
+    // Use a function for 'origin' here as well, matching Express CORS
+    origin: function (origin, callback) {
+      if (!origin || allowedFrontendOrigins.includes(origin)) {
+        callback(null, true); // Allow the Socket.IO connection
+      } else {
+        console.warn(`Socket.IO CORS Error: Origin ${origin} not allowed.`);
+        callback(new Error('Not allowed by Socket.IO CORS'), false); // Block the connection
+      }
+    },
     methods: ["GET", "POST", "PUT", "DELETE"], // Add common methods if not explicitly handled by your use case
     credentials: true // Match with express cors if you use cookies/auth with sockets
   }
