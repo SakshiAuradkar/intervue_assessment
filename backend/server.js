@@ -1,36 +1,35 @@
-// server.js
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
 const cors = require('cors');
 
+// --- DEBUG POINT 1 ---
+console.log('DEBUG 1: Starting server.js execution...');
+
 const app = express();
 const server = http.createServer(app);
 
-// Define your allowed origins dynamically based on the environment variable.
-// This is now the ONLY place where allowed origins are defined.
+// Define your allowed origins as an array.
 const allowedFrontendOrigins = [
-  "http://localhost:8080", // Your local frontend dev URL
-  "https://intervue-assessment.vercel.app", // Your deployed Vercel frontend URL (without trailing slash)
-  "https://intervue-assessment.vercel.app/"  // Your deployed Vercel frontend URL (with trailing slash, as a fallback)
+  "http://localhost:8080",
+  "https://intervue-assessment.vercel.app",
+  "https://intervue-assessment.vercel.app/"
 ];
 
-// If process.env.FRONTEND_URL is set, add it to the allowed list (just in case it's different)
+// If process.env.FRONTEND_URL is set, add it to the allowed list
 if (process.env.FRONTEND_URL) {
   const envUrl = process.env.FRONTEND_URL;
   if (!allowedFrontendOrigins.includes(envUrl)) {
     allowedFrontendOrigins.push(envUrl);
   }
-  // Also add without trailing slash if the env var came with one
   if (envUrl.endsWith('/') && !allowedFrontendOrigins.includes(envUrl.slice(0, -1))) {
       allowedFrontendOrigins.push(envUrl.slice(0, -1));
   }
 }
 
-// --- TEMPORARY DEBUGGING LOG (Keep this for now!) ---
-console.log("Backend process.env.FRONTEND_URL from Railway:", process.env.FRONTEND_URL);
-console.log("Backend is allowing CORS from these origins:", allowedFrontendOrigins);
-// --- END TEMPORARY DEBUGGING LOG ---
+// --- DEBUG POINT 2 ---
+console.log("DEBUG 2: Backend process.env.FRONTEND_URL from Railway (Raw):", process.env.FRONTEND_URL);
+console.log("DEBUG 3: Backend is allowing CORS from these origins:", allowedFrontendOrigins);
 
 // --- CORS configuration for Express routes (HTTP requests) ---
 app.use(cors({
@@ -44,6 +43,9 @@ app.use(cors({
   },
   credentials: true
 }));
+
+// --- DEBUG POINT 4 ---
+console.log('DEBUG 4: Express CORS middleware configured.');
 
 app.use(express.json());
 
@@ -63,7 +65,8 @@ const io = socketIo(server, {
   }
 });
 
-// ... (rest of your server.js code - no changes below this point) ...
+// --- DEBUG POINT 5 ---
+console.log('DEBUG 5: Socket.IO configured.');
 
 // Health check endpoint
 app.get('/', (req, res) => {
@@ -74,6 +77,9 @@ app.get('/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
+// --- DEBUG POINT 6 ---
+console.log('DEBUG 6: Express routes defined.');
+
 // Store application state
 let currentPoll = null;
 let students = [];
@@ -82,8 +88,14 @@ let chatMessages = [];
 let pollHistory = [];
 let pollTimer = null;
 
+// --- DEBUG POINT 7 ---
+console.log('DEBUG 7: Application state initialized.');
+
 // Socket.IO connection handling
 io.on('connection', (socket) => {
+  // --- DEBUG POINT 8 (This will only log on actual client connection, but useful for verifying) ---
+  console.log('DEBUG 8: User connected handler triggered:', socket.id);
+
   console.log('User connected:', socket.id);
 
   // Send current state to newly connected client
@@ -95,9 +107,10 @@ io.on('connection', (socket) => {
     pollHistory
   });
 
-  // Handle student joining
+  // ... (rest of your socket.on handlers) ...
   socket.on('join-session', (data) => {
     try {
+      // console.log('DEBUG: join-session received'); // Can add more debugs inside handlers if needed
       const { name } = data;
       const student = {
         id: socket.id,
@@ -115,7 +128,6 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Handle poll creation
   socket.on('create-poll', (data) => {
     try {
       const { question, options, timeLimit, correctAnswer } = data;
@@ -155,7 +167,6 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Handle poll ending
   socket.on('end-poll', () => {
     try {
       if (currentPoll && !currentPoll.ended) {
@@ -175,7 +186,6 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Handle vote submission
   socket.on('submit-vote', (data) => {
     try {
       const { option, studentName } = data;
@@ -190,7 +200,6 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Handle chat messages
   socket.on('send-message', (data) => {
     try {
       const { message, sender, isTeacher } = data;
@@ -211,7 +220,6 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Handle student kick
   socket.on('kick-student', (data) => {
     try {
       const { studentId } = data;
@@ -233,7 +241,6 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Handle disconnection
   socket.on('disconnect', () => {
     try {
       const disconnectedStudent = students.find(s => s.id === socket.id);
@@ -255,5 +262,7 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  // --- DEBUG POINT 9 ---
+  console.log(`DEBUG 9: Server successfully listening on port ${PORT}`);
+  console.log(`Server running on port ${PORT}`); // Your original log
 });
