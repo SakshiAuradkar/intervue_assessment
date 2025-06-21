@@ -1,4 +1,3 @@
-
 {
   "name": "polling-app-backend",
   "version": "1.0.0",
@@ -9,14 +8,18 @@
     "dev": "nodemon server.js"
   },
   "dependencies": {
-    "socket.io": "^4.7.5",
+    "cors": "^2.8.5",
     "express": "^4.18.2",
-    "cors": "^2.8.5"
+    "socket.io": "^4.7.5"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"
   },
-  "keywords": ["polling", "realtime", "websocket"],
+  "keywords": [
+    "polling",
+    "realtime",
+    "websocket"
+  ],
   "author": "",
   "license": "MIT"
 }
